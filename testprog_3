@@ -1,0 +1,43 @@
+pro testprog3
+
+	restore,"fast_wind_measurements.save"
+	actual = carbon(4:6)
+	print, "Use fast_wind_0.save as input"
+	wind_diagn,6,/smooth,/photoion,day_photoion = '20-07-2007', file_model = "fast_wind_0.save"
+	restore,"results_c_3.save"
+	ioneq_evol_c = ioneq_evol
+	chisquare1 = total(((ioneq_evol_c([4:6],-1) - actual)^2)/(actual^2))
+	print, "The chisquare value is "+chisquare1
+	IF (chisquare1 GE 0.05) THEN restore,"fast_wind_0.save"
+	print, "More work has to be done!"
+	old_mass = mass
+	old_velocity = velocity
+	old_temp = temp
+	chisquare = fltarr(10,3)
+	
+	FOR i=0,9 DO BEGIN 
+		f1 = ((i+1)/2)
+		coeff = poly_fit([1,300],[f1,1],1)
+		factor = poly(height, coeff)
+		for j = 0,2 DO BEGIN
+			if (j EQ 0) THEN BEGIN 
+				mass = old_mass * factor
+				save, filename = "fast_wind_"+strcompress(string(i),/remove_all)+"_"+strcompress(string(j),/remove_all)+".save", mass, height, velocity, temp
+			ENDIF
+			if (j EQ 1) THEN BEGIN
+				velocity = old_velocity * factor
+				save, filename =  "fast_wind_"+strcompress(string(i),/remove_all)+"_"+strcompress(string(j),/remove_all)+".save", mass, height, velocity, temp
+			ENDIF
+			if (j EQ 2) THEN BEGIN
+				temp = old_temp * factor
+				save, filename =  "fast_wind_"+strcompress(string(i),/remove_all)+"_"+strcompress(string(j),/remove_all)+".save", mass, height, velocity, temp
+			ENDIF
+			wind_diagn,6,/smooth,/photoion, day_photoion = '20-07-2007', file_model = "fast_wind_"+strcompress(string(i),/remove_all)+"_"+strcompress(string(j),/remove_all)+".save"
+			chisquare(i,j) = total(((ioneq_evol_c([4:6],-1) - actual)^2)/(actual^2))
+			print, chisquare
+			b = ''
+			READ, b, PROMPT='Enter Name: '
+			print, b
+		ENDFOR
+	ENDFOR
+END 
