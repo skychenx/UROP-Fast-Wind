@@ -1,0 +1,31 @@
+pro testprog
+
+	restore,"fast_wind_measurements.save"
+	actual = carbon(4:6)
+	print, "Use fast_wind_0.save as input"
+
+
+	FOR i=1,9 DO BEGIN 
+		wind_diagn,6,/smooth,/photoion,day_photoion = '20-07-2007', file_model = "fast_wind_"+strcompress(string(i-1),/remove_all)+".save"
+		restore,"results_c_3.save"
+		ioneq_evol_c = ioneq_evol
+		chisquare = total(((ioneq_evol_c([4:6],-1) - actual)^2)/(actual^2))
+		print, "The chisquare value is "+chisquare
+		IF (chisquare GE 0.05) THEN restore,"fast_wind_"+strcompress(string(i-1),/remove_all)+".save"
+		print, "More work has to be done!"
+
+		IF ((ioneq_evol_c([4],-1) - carbon(4)) GE 0.1) THEN BEGIN
+			old_mass = mass 
+			coeff_1 = poly_fit([1,300],[2.0,1],1)
+			factor_1 = poly(height,coeff_1)
+			mass = old_mass * factor_1 
+		ENDIF ELSE BEGIN 
+			old_mass = mass 
+			coeff_2 = poly_fit([1,300],[0.75,1],1)
+			factor_2 = poly(height,coeff_2)
+			mass = old_mass * factor_2
+		ENDELSE
+		fileout= 'fast_wind_'+strcompress(string(i),/remove_all)+'.save'
+		save, filename =  fileout, mass, height, velocity, temp
+	ENDFOR
+END 
